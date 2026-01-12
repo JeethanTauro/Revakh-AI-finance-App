@@ -12,7 +12,7 @@ import org.springframework.amqp.core.Queue;
 @Configuration
 public class RabbitMqConfig {
 
-    public static final String FINANCE_EXCHANGE = "app.global.exhange";
+    public static final String FINANCE_EXCHANGE = "app.global.exchange";
 
     @Bean
     public Queue userCreatedQueue(){
