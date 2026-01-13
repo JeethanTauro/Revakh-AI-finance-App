@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RabbitMqConfig {
-    public static final String AUTH_EXCHANGE = "app.global.events";
+    public static final String AUTH_EXCHANGE = "app.global.exchange";
 
     @Bean
     public TopicExchange topicExchange(){
