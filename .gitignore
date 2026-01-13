@@ -32,7 +32,11 @@ chroma/
 
 # 3. Virtual Environment
 venv/
-.myenv/
+./myenv
+env/
+# Ignore any folder named myenv or starting with .myenv
+*myenv/
+venv/
 env/
 
 # 4. OS & IDE
