@@ -54,10 +54,6 @@ public class BudgetService {
         }
 
         if (dto.isActive()) {
-            BigDecimal newTotal = totalBudget(financeUser.getUserId()).add(dto.getLimitAmount());
-            if (newTotal.compareTo(walletService.getWallet(financeUser).getBalance()) > 0) {
-                throw new BudgetExceedsWalletException("Total budget exceeds wallet balance");
-            }
 
             if (budgetRepo.existsActiveBudget(financeUser, category, dto.getPeriod())) {
                 throw new BudgetAlreadyExistsException("Active budget exists for this category & period");
@@ -136,23 +132,7 @@ public class BudgetService {
                 old.getLimitAmount().compareTo(dto.getLimitAmount()) != 0;
         boolean activeChanged = old.isActive() != dto.isActive();
 
-        // Compute wallet constraint ONLY if budget will stay active
         // (If user deactivates budget, we don't need to enforce "totalBudget <= wallet")
-        if (dto.isActive()) {
-            FinanceUser user = financeUserService.getUser(dto.getUserId());
-            BigDecimal currentTotal = totalBudget(dto.getUserId());           // sum of all active budgets (including this one)
-            BigDecimal oldLimit = old.getLimitAmount();
-            BigDecimal newLimit = dto.getLimitAmount() != null ? dto.getLimitAmount() : oldLimit;
-
-            // newTotal = currentTotal - oldLimit + newLimit
-            BigDecimal adjustedTotal = currentTotal
-                    .subtract(oldLimit)
-                    .add(newLimit);
-
-            if (adjustedTotal.compareTo(walletService.getWallet(user).getBalance()) > 0) {
-                throw new BudgetExceedsWalletException("Total budget exceeds wallet balance");
-            }
-        }
 
         // CASE A: Simple edits (limit or active only)
         if (!periodChanged) {
