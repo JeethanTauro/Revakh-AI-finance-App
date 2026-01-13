@@ -18,5 +18,28 @@ bin/
 .DS_Store
 Thumbs.db
 
+#AI-service
+# 1. Security (NEVER commit these)
+.env
+__pycache__/
+*.pyc
+
+# 2. Vector Database (ChromaDB)
+# Do NOT commit your local vector storage. 
+# It's better to recreate it from the RabbitMQ events if needed.
+finance_memory/
+chroma/
+
+# 3. Virtual Environment
+venv/
+.myenv/
+env/
+
+# 4. OS & IDE
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
 # Logs
 *.log
