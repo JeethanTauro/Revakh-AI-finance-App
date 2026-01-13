@@ -1,5 +1,7 @@
 package finance_service.revakh.controller;
 
+import finance_service.revakh.DTO.DailyTransactionsRequestDTO;
+import finance_service.revakh.DTO.DailyTransactionsResponseDTO;
 import finance_service.revakh.DTO.TransactionLedgerRequestDTO;
 import finance_service.revakh.DTO.TransactionLedgerResultDTO;
 import finance_service.revakh.exceptions.InsufficientBalanceException;
@@ -9,16 +11,19 @@ import finance_service.revakh.models.TransactionLedger;
 import finance_service.revakh.service.TransactionLedgerService;
 import finance_service.revakh.service.WalletService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,7 +56,7 @@ public class TransactionLedgerController{
 
     // list all the user transactions
     @Operation(summary = "List Transactions", description = "Get all active transactions for a user.")
-    @GetMapping("/{userId}/transaction-ledger")
+    @GetMapping("/{userId}/transaction-ledger/history")
     public ResponseEntity<?> getAllTransactions(@PathVariable Long userId){
         try{
             List<TransactionLedgerResultDTO> ledgerResultDTOS = new ArrayList<>();
@@ -74,6 +79,20 @@ public class TransactionLedgerController{
         }catch (UserNotFoundException u){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
         }
+    }
+
+    @Operation(summary = "List Transactions Daily Transactions", description = "Get all daily transactions for a user under each category.")
+    @PostMapping("{userId}/transaction-ledger/daily")
+    public ResponseEntity<?> getDailyTransactions(
+            @PathVariable Long userId,
+            @Parameter(description = "Date for the report (YYYY-MM-DD)")
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate targetDate){
+        DailyTransactionsRequestDTO dailyTransactionsRequestDTO = DailyTransactionsRequestDTO.builder()
+                .userId(userId)
+                .targetDate(targetDate)
+                .build();
+
+        return transactionLedgerService.getDailyTransactions(dailyTransactionsRequestDTO);
     }
     // fetch a single transaction
     //this is just for our testing purposes and future usecases, we wont be using this on the front end

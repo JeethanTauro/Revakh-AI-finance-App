@@ -68,6 +68,7 @@ def generate_narrative(message_json,event_type):
         3. Add a professional financial context.
         4. Do not use curly braces or code in the output.
         5. Make sure the senetences you make are factual and human readable , don't halucinate
+        6. The currency is always indian rupees
         Output only the narrative. No JSON, no preamble.
       """
 
@@ -121,3 +122,13 @@ def store_event(message_json, narrative):
         ids=[str(message_json.get('eventId'))]
     )
     print(f" [v] {event_type.upper()} stored for user {metadata['userId']}")
+
+
+"""
+
+- we have to protect our chatbot api, its currently exposed
+- as the RAG gives top 5 so it might forgetr some old transactions and old budgets
+- also the thing is if we update our budget, the old budget is still in the db, so the RAG might be confused which is the actual budget
+- also we can create documents which summarise the old data, like weekly sumary and monthly summary, daily summary
+
+"""

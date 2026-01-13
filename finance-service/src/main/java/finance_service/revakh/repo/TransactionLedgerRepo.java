@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -41,6 +42,7 @@ public interface TransactionLedgerRepo extends JpaRepository<TransactionLedger, 
     Optional<TransactionLedger> findByFinanceUserAndTransactionIdAndIsDeletedFalse(FinanceUser financeUser, Long transactionId);
 
     // === FIX 1: Explicitly map userId to financeUser.userId ===
+    //between days
     @Query("SELECT t FROM TransactionLedger t WHERE t.financeUser.userId = :userId AND t.date BETWEEN :start AND :end")
     List<TransactionLedger> findByUserIdAndDateBetween(@Param("userId") Long userId, @Param("start") LocalDate start, @Param("end") LocalDate end);
 
@@ -52,4 +54,11 @@ public interface TransactionLedgerRepo extends JpaRepository<TransactionLedger, 
             @Param("start") LocalDate start,
             @Param("end") LocalDate end
     );
+
+    //in the same day
+    @Query("SELECT t FROM TransactionLedger t WHERE t.financeUser.userId = :userId AND t.createdAt >= :startOfDay AND t.createdAt <= :endOfDay")
+    List<TransactionLedger> findAllByUserIdAndOccurredAtBetween(
+           @Param("userId") Long userId,
+           @Param("startOfDay") LocalDateTime startOfDay,
+           @Param("endOfDay") LocalDateTime endOfDay);
 }

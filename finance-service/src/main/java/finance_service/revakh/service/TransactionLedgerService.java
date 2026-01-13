@@ -1,32 +1,32 @@
 package finance_service.revakh.service;
 
+import finance_service.revakh.DTO.DailyTransactionsRequestDTO;
+import finance_service.revakh.DTO.DailyTransactionsResponseDTO;
 import finance_service.revakh.DTO.TransactionLedgerRequestDTO;
 import finance_service.revakh.DTO.TransactionLedgerResultDTO;
 import finance_service.revakh.events.TransactionCreatedEvent;
 import finance_service.revakh.exceptions.OptimisticRetryFailedException;
 import finance_service.revakh.exceptions.InsufficientBalanceException;
 import finance_service.revakh.exceptions.TransactionNotFound;
-import finance_service.revakh.exceptions.UserNotFoundException;
 import finance_service.revakh.messages.TransactionEventPublisher;
 import finance_service.revakh.models.*;
-import finance_service.revakh.repo.CategoryRepo;
-import finance_service.revakh.repo.FinanceUserRepo;
 import finance_service.revakh.repo.TransactionLedgerRepo;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static finance_service.revakh.models.TransactionType.DEBIT;
 
@@ -191,6 +191,49 @@ public class TransactionLedgerService {
 
     public BigDecimal computeSpent(FinanceUser user, Category category, LocalDate periodStart,LocalDate periodEnd){
         return ledgerRepo.computeSpent(user,category,periodStart,periodEnd);
+    }
+
+    public ResponseEntity<?> getDailyTransactions(DailyTransactionsRequestDTO dailyTransactionsRequestDTO){
+        LocalDateTime startOfDay = dailyTransactionsRequestDTO.getTargetDate().atStartOfDay();
+        LocalDateTime endOfDay = dailyTransactionsRequestDTO.getTargetDate().atTime(LocalTime.MAX);
+        List<TransactionLedger> transactions = ledgerRepo
+                .findAllByUserIdAndOccurredAtBetween(dailyTransactionsRequestDTO.getUserId(), startOfDay, endOfDay);
+
+        double totalIncome = transactions.stream()
+                .filter(t -> t.getTransactionType().name().equalsIgnoreCase("INCOME"))
+                .map(TransactionLedger::getAmount) // Get the BigDecimal
+                .mapToDouble(BigDecimal::doubleValue) // Convert BigDecimal to double
+                .sum();
+
+// Calculate Total Expense
+        double totalExpense = transactions.stream()
+                .filter(t -> t.getTransactionType().name().equalsIgnoreCase("EXPENSE"))
+                .map(TransactionLedger::getAmount)
+                .mapToDouble(BigDecimal::doubleValue)
+                .sum();
+
+        Map<String, List<DailyTransactionsResponseDTO.TransactionDetailDTO>> groupedByCategories = transactions.stream()
+                .collect(Collectors.groupingBy(
+                        t -> t.getCategory() != null ? t.getCategory().getName() : "UNCATEGORIZED",
+                        Collectors.mapping(t -> DailyTransactionsResponseDTO.TransactionDetailDTO.builder()
+                                .transactionId(t.getTransactionId())
+                                .description(t.getDescription())
+                                .amount(t.getAmount().doubleValue())
+                                .type(t.getTransactionType().name())
+                                .build(), Collectors.toList())
+                ));
+
+        // 5. Construct the final Response DTO
+        DailyTransactionsResponseDTO response = DailyTransactionsResponseDTO.builder()
+                .date(dailyTransactionsRequestDTO.getTargetDate())
+                .totalIncome(totalIncome)
+                .totalExpense(totalExpense)
+                .netBalance(totalIncome - totalExpense)
+                .categories(groupedByCategories)
+                .build();
+
+        return ResponseEntity.ok(response);
+
     }
 
     private TransactionCreatedEvent mapToEvent(TransactionLedgerResultDTO dto) {

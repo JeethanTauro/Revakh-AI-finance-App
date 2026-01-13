@@ -46,6 +46,7 @@ def ask_finance_ai(user_id: int, query: str):
     - If the answer isn't in the context, say you don't have enough data.
     - Be concise and professional.
     - Treat all numbers as factual.
+    - Currency is always indian rupees
     """
 
     try:
