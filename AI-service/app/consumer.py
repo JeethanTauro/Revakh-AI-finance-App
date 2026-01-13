@@ -4,6 +4,7 @@ import json
 import os
 import sys
 from dotenv import load_dotenv
+from app.database import generate_narrative, store_event
 
 env_path = "/home/jeethan/Desktop/Revakh/Revakh-AI-assisted-Financial-App/AI-service/app/.env"
 load_dotenv(dotenv_path=env_path)
@@ -22,7 +23,7 @@ def connect_rabbitmq():
         credentials = pika.PlainCredentials(RABBIT_USER, RABBIT_PASS) # or your username/password
         parameters = pika.ConnectionParameters(
             host=RABBITMQ_HOST,
-            virtual_host='myapp_vhost', # THIS MUST MATCH THE IMAGE
+            virtual_host='myapp_vhost',
             credentials=credentials
         )
         #connecting to rabbitmq server
@@ -56,22 +57,34 @@ def callback(ch, method, properties, body):
     """
     This function runs AUTOMATICALLY whenever a message arrives.
     """
+    routing_key = method.routing_key
+    print(f" [x] RECEIVED EVENT: {routing_key}")
+    
     try:
-        # 1. Decode the bytes to JSON
-        message = json.loads(body)
-        routing_key = method.routing_key
+        # 1. Parse the incoming bytes to JSON
+        message_json = json.loads(body)
         
-        print(f"\n [x] RECEIVED EVENT: {routing_key}")
-        print(f"     Payload: {json.dumps(message, indent=2)}")
+        # 2. TAG THE EVENT TYPE (The fix for Budgets)
+        # We check the routing key to decide if it's a budget or transaction
+        if "budget" in routing_key:
+            message_json['type'] = "budget"
+        else:
+            message_json['type'] = "transaction"
         
-        # TODO: Vectorize this data and save to ChromaDB (We will add this next)
+        print(f"\npayload : \n {message_json}")
+
+        # 3. Generate the Narrative (using the new type)
+        narrative = generate_narrative(message_json, message_json['type'])
         
-        # 2. Acknowledge (Tell RabbitMQ: "I processed it, you can delete it")
+        # 4. Store in ChromaDB
+        store_event(message_json, narrative)
+        
+        # Acknowledge the message was processed
         ch.basic_ack(delivery_tag=method.delivery_tag)
         
     except Exception as e:
         print(f"Error processing message: {e}")
-        # If we crash, tell RabbitMQ to NOT requeue it (prevent infinite loops)
+        # Optionally nack the message so it stays in the queue
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
 
