@@ -91,4 +91,11 @@ public class FinanceUserService {
     }
     // Inside FinanceUserService.java
 
+
+    //Auth service is the truth right
+    //so if a user is created there its created here,
+    //if user is deleted there, then it must be deleted here
+    //if a user is updated there, then the user must be updated here
+    //anything related to user, for example updating, getting information must be done in the auth service
+
 }
