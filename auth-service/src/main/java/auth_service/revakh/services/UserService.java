@@ -9,6 +9,7 @@ import auth_service.revakh.events.UserCreatedEvent;
 import auth_service.revakh.events.UserDeletedEvent;
 import auth_service.revakh.messaging.UserEventPublisher;
 import auth_service.revakh.models.User;
+import auth_service.revakh.repo.OtpRepo;
 import auth_service.revakh.repo.UserRepo;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.UnsupportedEncodingException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -72,6 +74,7 @@ Example Gateway Aggregated Response:
     private final JwtService jwtService;
     private final UserEventPublisher userEventPublisher;
     private final OTPservice otpService;
+    private final OtpRepo otpRepo;
     //registration
 
     //in real life when a user registers, he must register with an email and then password, the otp is generated and sent to the email and the email is verified and then only access token is generated
@@ -82,8 +85,19 @@ Example Gateway Aggregated Response:
     public ResponseEntity<?> userRegister(UserRegisterDTO userRegisterDTO) throws MessagingException, UnsupportedEncodingException {
             String userName = userRegisterDTO.getUserName();
             String userEmail = userRegisterDTO.getUserEmail();
-            if(userRepo.findByUserEmail(userEmail).isPresent()){
-                throw new UserAlreadyExistsException("User already exists");
+            Optional<User> optionalUser = userRepo.findByUserEmail(userEmail);
+            if(optionalUser.isPresent()){
+                User user = optionalUser.get();
+                if(user.isVerified()){
+                    throw new UserAlreadyExistsException("User already exists");
+                }
+                else{
+                    otpRepo.deleteByUserEmail(userEmail);
+                    userRepo.delete(user);
+
+                    // FORCE the delete to happen in the DB right now
+                    userRepo.flush();
+                }
             }
             String userPassword = userRegisterDTO.getUserPassword();
             String userInternationalCode = userRegisterDTO.getUserInternationalCode();
@@ -99,7 +113,7 @@ Example Gateway Aggregated Response:
                     .userBirthDate(userBirthDate)
                     .isVerified(false)
                     .build();
-            //save it first
+            //save it first so that no one else at the same time gets that username
             User savedUser =userRepo.save(user);
 
             //generate the otp and send it to the email
@@ -143,9 +157,9 @@ Example Gateway Aggregated Response:
         }
         user.setVerified(true);
         User savedUser = userRepo.save(user);
-
+        Long userId = user.getUserId();
         // 4. NOW Generate Tokens (The Reward)
-        String jwtToken = jwtService.generateToken(email);
+        String jwtToken = jwtService.generateToken(email,userId);
         String jwtRefreshToken = jwtService.generateRefreshToken(email);
 
         AuthResponseDTO authResponseDTO = AuthResponseDTO.builder()
@@ -226,7 +240,8 @@ Example Gateway Aggregated Response:
         if(!(passwordEncoder.matches(userPassword,user.getUserPassword()))){
             throw new UserLoginException("Wrong username or password");
         }
-        String jwtToken = jwtService.generateToken(userEmail);
+        Long userId = user.getUserId();
+        String jwtToken = jwtService.generateToken(userEmail,userId);
             String jwtRefreshToken = jwtService.generateRefreshToken(userEmail);
             AuthResponseDTO authResponseDTO = AuthResponseDTO.builder()
                     .accessToken(jwtToken)
@@ -294,9 +309,9 @@ Example Gateway Aggregated Response:
 
             user.setUserEmail(newEmail); // We trust the cache, not the DTO
             userRepo.save(user);
-
+            Long userId = user.getUserId();
             // Generate NEW tokens immediately for the NEW email
-            String newToken = jwtService.generateToken(newEmail);
+            String newToken = jwtService.generateToken(newEmail,userId);
             String newRefreshToken = jwtService.generateRefreshToken(newEmail);
 
             AuthResponseDTO response = AuthResponseDTO.builder()
