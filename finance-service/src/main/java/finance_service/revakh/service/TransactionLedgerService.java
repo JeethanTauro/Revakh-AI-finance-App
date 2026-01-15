@@ -190,6 +190,11 @@ public class TransactionLedgerService {
     }
 
     public BigDecimal computeSpent(FinanceUser user, Category category, LocalDate periodStart,LocalDate periodEnd){
+        //if the category name is global, we will calculate all the debits, regardless of the categorirs
+        if(category.getName().equals("GLOBAL") && category != null){
+            return ledgerRepo.totalSpentByUser(user,periodStart,periodEnd);
+
+        }
         return ledgerRepo.computeSpent(user,category,periodStart,periodEnd);
     }
 

@@ -36,6 +36,21 @@ public interface TransactionLedgerRepo extends JpaRepository<TransactionLedger, 
             @Param("end") LocalDate end
     );
 
+
+    @Query("""
+    SELECT COALESCE(SUM(t.amount), 0)
+    FROM TransactionLedger t
+    WHERE t.financeUser = :user
+      AND t.transactionType = finance_service.revakh.models.TransactionType.DEBIT
+      AND t.isDeleted = false
+      AND t.date BETWEEN :start AND :end
+""")
+    BigDecimal totalSpentByUser(
+            @Param("user") FinanceUser user,
+            @Param("start") LocalDate start,
+            @Param("end") LocalDate end
+    );
+
     List<TransactionLedger> findAllByFinanceUserAndIsDeletedFalse(FinanceUser financeUser);
 
 
