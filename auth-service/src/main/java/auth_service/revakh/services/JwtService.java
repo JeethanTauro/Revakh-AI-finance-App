@@ -39,8 +39,10 @@ public class JwtService {
     }
 
     /** Generate access token */
-    public String generateToken(String userEmail) {
-        return createToken(new HashMap<>(), userEmail, expiration);
+    public String generateToken(String userEmail, Long userId) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId",userId);
+        return createToken(claims, userEmail, expiration);
     }
 
     /** Generate refresh token */
@@ -62,7 +64,7 @@ public class JwtService {
     }
 
     /** Extract username/email from token */
-    public String extractUsername(String token) {
+    public String extractUserEmail(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
@@ -88,8 +90,8 @@ public class JwtService {
 
     /** Validate access token */
     public boolean validateToken(String token, UserDetails userDetails) {
-        String username = extractUsername(token);
-        return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+        String userEmail = extractUserEmail(token);
+        return userEmail.equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
 
     /** Generate short-lived password reset token */
@@ -142,7 +144,8 @@ public class JwtService {
     }
     /** Generate new access token using a valid refresh token */
     public String generateNewAccessTokenFromRefreshToken(String refreshToken) {
-        String userEmail = extractUsername(refreshToken);
-        return generateToken(userEmail); // access token (30 min)
+        String userEmail = extractUserEmail(refreshToken);
+        Long userId = extractClaim(refreshToken, claims -> claims.get("userId", Long.class));
+        return generateToken(userEmail,userId); // access token (30 min)
     }
 }
