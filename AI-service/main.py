@@ -45,7 +45,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
 
-@app.post("/api/v1/chat", response_model=ChatResponse)
+@app.post("/api/AI/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
     try:
         # Call the RAG function we built earlier
@@ -56,4 +56,4 @@ async def chat_endpoint(request: ChatRequest):
         raise HTTPException(status_code=500, detail=str(e))
     
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=8082, reload=True)
