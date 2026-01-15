@@ -104,7 +104,14 @@ public class OTPservice {
     // 3. UPDATED Validation Logic
     public boolean isOtpValid(String userEmail, String otpFromUser) {
         OTP otp = otpRepo.findByUserEmail(userEmail);
-
+        System.out.println("Validating for: " + userEmail);
+        System.out.println("OTP from User: [" + otpFromUser + "]");
+        if (otp != null) {
+            System.out.println("Stored Encoded OTP: " + otp.getOtp());
+            System.out.println("Is Expired? " + otp.getExpiry().isBefore(LocalDateTime.now()));
+        } else {
+            System.out.println("No OTP found in DB for this email!");
+        }
         if (otp == null) return false;
         if (otp.isUsed()) return false;
         if (otp.getExpiry().isBefore(LocalDateTime.now())) return false;
