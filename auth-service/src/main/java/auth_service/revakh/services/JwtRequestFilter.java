@@ -1,8 +1,6 @@
 package auth_service.revakh.services;
 
 
-import auth_service.revakh.services.JwtService;
-import auth_service.revakh.services.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -40,7 +38,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         // Extract token from Authorization header
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
-        final String username;
+        final String userEmail;
 
 
         // Header format: "Authorization: Bearer <token>"
@@ -50,11 +48,11 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         }
 
         jwt = authHeader.substring(7); // remove "Bearer "
-        username = jwtService.extractUsername(jwt);
+        userEmail = jwtService.extractUserEmail(jwt);
 
         // If username is valid and no authentication exists in context
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            UserDetails userDetails = customUserDetailsService.loadUserByUsername(userEmail);
 
             if (jwtService.validateToken(jwt, userDetails)) {
                 UsernamePasswordAuthenticationToken authToken =
