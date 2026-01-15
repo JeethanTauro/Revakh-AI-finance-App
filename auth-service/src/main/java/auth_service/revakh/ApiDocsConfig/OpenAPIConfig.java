@@ -43,7 +43,7 @@ public class OpenAPIConfig {
                         .description("Enter the jwt token")
                 ))
                 .addServersItem(new Server().
-                        url("http://localhost:8081")
+                        url("http://localhost:8080")
                         .description("Development and testing server")
                 );
     }
