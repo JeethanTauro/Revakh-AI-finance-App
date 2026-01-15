@@ -15,6 +15,9 @@ RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
 EXCHANGE_NAME = "app.global.exchange"
 QUEUE_NAME = "ai.service.queue"
 
+
+#This is the fucntion to connect to the rabbit mq using the credentials
+#here it creates the queues, and then binds it to the respective routing keys
 def connect_rabbitmq():
     if not RABBIT_USER or not RABBIT_PASS:
         print("Error: RABBIT_USER or RABBIT_PASS environment variables are not set!")
@@ -52,11 +55,10 @@ def connect_rabbitmq():
     except Exception as e:
         print(f"Error connecting to RabbitMQ: {e}")
         return None, None
-    
+
+#Basically this method runs whenever the queue receives a message/event   
 def callback(ch, method, properties, body):
-    """
-    This function runs AUTOMATICALLY whenever a message arrives.
-    """
+   
     routing_key = method.routing_key
     print(f" [x] RECEIVED EVENT: {routing_key}")
     
@@ -88,6 +90,8 @@ def callback(ch, method, properties, body):
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
 
+#this is the start consumer thread
+#so it starts the connection, and then once the channel and connection is established it runs the consume function witht the callback
 def start_consumer():
     """
     The main loop that keeps the ear open.

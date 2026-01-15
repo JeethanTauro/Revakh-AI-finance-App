@@ -1,7 +1,7 @@
 import os
 from groq import Groq
 from dotenv import load_dotenv
-from app.database import get_finance_collection # Import your function from database.py
+from app.database import get_finance_collection
 
 # Load env variables
 env_path = "/home/jeethan/Desktop/Revakh/Revakh-AI-assisted-Financial-App/AI-service/app/.env"
@@ -46,6 +46,8 @@ def ask_finance_ai(user_id: int, query: str):
     - If the answer isn't in the context, say you don't have enough data.
     - Be concise and professional.
     - Treat all numbers as factual.
+    - do not give tables or maps but give short structured bullet points and meaningful senetences
+    - do not give internal data such as budgetId, transactionId and userId
     - Currency is always indian rupees
     """
 

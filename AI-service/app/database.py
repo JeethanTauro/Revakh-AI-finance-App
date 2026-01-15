@@ -52,13 +52,14 @@ def generate_narrative(message_json,event_type):
         desc = message_json.get('description')
         cat = message_json.get('category')
         m_type = message_json.get('type')
-        date = message_json.get('ocuredAt')
+        date = message_json.get('occuredAt')
     
-    # The "Secret Sauce": The Prompt
+    # The Prompt to generate the narrative from the json 
         prompt = f"""
         You are a professional financial data analyst for a personal finance RAG system.
-        Task: Convert the transaction below into a 3-sentence semantic narrative for long-term memory.
-    
+        Task: Convert the transaction below into a '3 to 4 sentence semantic narrative' for long-term memory.
+        This is the json format : {message_json}
+        This is the transaction in short - 
         Transaction: {amount} {message_json.get('currency')} for "{desc}" (Category: {cat}, Type: {m_type}, Date: {date})
     
         Requirements:
@@ -69,17 +70,16 @@ def generate_narrative(message_json,event_type):
         4. Do not use curly braces or code in the output.
         5. Make sure the senetences you make are factual and human readable , don't halucinate
         6. The currency is always indian rupees
+        7. Make sure you read the json and the short transaction provided to generate the narrative
         Output only the narrative. No JSON, no preamble.
       """
 
-    # Extract data for the prompt
-    
-
+    # Using the AI to generate the narrative by understanding the json
     try:
         response = groq_client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
             model="openai/gpt-oss-120b",
-            temperature=0.2 # Keep it consistent and factual
+            temperature=0.2
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
@@ -112,7 +112,8 @@ def store_event(message_json, narrative):
     else:
         metadata.update({
             "transactionId": str(message_json.get('transactionId', 'N/A')),
-            "amount": float(message_json.get('amount', 0.0))
+            "amount": float(message_json.get('amount', 0.0)),
+            "description":str(message_json.get('description','N/A'))
         })
 
     # 3. Add to Collection
