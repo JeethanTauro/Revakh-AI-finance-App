@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/finance/users")
 @RequiredArgsConstructor
 public class TransactionLedgerController{
     private final TransactionLedgerService transactionLedgerService;

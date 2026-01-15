@@ -15,7 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/users") // Base path matches your other controllers
+@RequestMapping("/api/finance/users") // Base path matches your other controllers
 @RequiredArgsConstructor
 @Tag(name = "Financial Metrics", description = "Endpoints for Dashboard Analytics, Graphs, and Health Checks")
 public class MetricsController {

@@ -20,7 +20,7 @@ import java.util.List;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/finance/users")
 public class BudgetController {
     private final BudgetService budgetService;
 

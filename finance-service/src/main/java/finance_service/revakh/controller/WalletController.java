@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/finance/users")
 public class WalletController {
     //the userId is sent by the authResponseDTO when the user first registers and is stored on the frontend for further rquests
     //now we can have an issue, anyone can change the userId and then request for someone else's wallet
