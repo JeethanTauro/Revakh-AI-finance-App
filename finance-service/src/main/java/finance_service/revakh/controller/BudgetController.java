@@ -183,5 +183,12 @@ public class BudgetController {
         }
     }
 
+    //this endpoint is mainly for testing to see if the reset of periods in budgets work or not
+    @Operation(summary = "resets expired budgets for all users")
+    @GetMapping("/budgets/reset")
+    public ResponseEntity<?> restBudget(){
+        budgetService.resetExpiredBudgets();
+        return ResponseEntity.ok("Rest all expired budgets");
+    }
 
 }
