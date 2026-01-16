@@ -46,7 +46,7 @@ public class PasswordUpdateController {
             )
     })
     @PatchMapping
-    public ResponseEntity<?> userUpdatePassword(@RequestBody AuthenticatedUserNewPasswordDTO authenticatedUserNewPasswordDTO){
-        return  userService.updatePasswordAuthenticatedUser(authenticatedUserNewPasswordDTO.getOldUserPassword(), authenticatedUserNewPasswordDTO.getNewUserPassword());
+    public ResponseEntity<?> userUpdatePassword(@RequestHeader("userId") Long userId,@RequestBody AuthenticatedUserNewPasswordDTO authenticatedUserNewPasswordDTO){
+        return  userService.updatePasswordAuthenticatedUser(userId,authenticatedUserNewPasswordDTO.getOldUserPassword(), authenticatedUserNewPasswordDTO.getNewUserPassword());
     }
 }

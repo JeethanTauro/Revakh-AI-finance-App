@@ -20,6 +20,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.io.UnsupportedEncodingException;
 import java.time.LocalDate;
@@ -160,7 +161,7 @@ Example Gateway Aggregated Response:
         Long userId = user.getUserId();
         // 4. NOW Generate Tokens (The Reward)
         String jwtToken = jwtService.generateToken(email,userId);
-        String jwtRefreshToken = jwtService.generateRefreshToken(email);
+        String jwtRefreshToken = jwtService.generateRefreshToken(email,userId);
 
         AuthResponseDTO authResponseDTO = AuthResponseDTO.builder()
                 .accessToken(jwtToken)
@@ -191,11 +192,11 @@ Example Gateway Aggregated Response:
 
     //delete
     @Transactional
-    public ResponseEntity<?> deleteUser(){
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication(); //get the current authenticated user
-            String userEmail = authentication.getName(); //get the user-email
+    public ResponseEntity<?> deleteUser(Long userId){
+//            Authentication authentication = SecurityContextHolder.getContext().getAuthentication(); //get the current authenticated user
+//            String userEmail = authentication.getName(); //get the user-email
 
-            User user = userRepo.findByUserEmail(userEmail).orElseThrow(()-> new UserCannotBeDeletedException("User could not be deleted")); //find the user by userEmail
+            User user = userRepo.findById(userId).orElseThrow(()-> new UserCannotBeDeletedException("User could not be deleted")); //find the user by userEmail
             UserDeletedEvent userDeletedEvent = UserDeletedEvent.builder()
                     .userId(user.getUserId())
                     .userName(user.getUserName())
@@ -242,22 +243,23 @@ Example Gateway Aggregated Response:
         }
         Long userId = user.getUserId();
         String jwtToken = jwtService.generateToken(userEmail,userId);
-            String jwtRefreshToken = jwtService.generateRefreshToken(userEmail);
+            String jwtRefreshToken = jwtService.generateRefreshToken(userEmail,userId);
             AuthResponseDTO authResponseDTO = AuthResponseDTO.builder()
                     .accessToken(jwtToken)
                     .refreshToken(jwtRefreshToken)
                     .message("Successfully Logged in")
+                    .userId(userId)
                     .build();
             return ResponseEntity.ok(authResponseDTO);
     }
 
     //update password
-    public ResponseEntity<?> updatePasswordAuthenticatedUser(String oldPassword, String newPassword){
+    public ResponseEntity<?> updatePasswordAuthenticatedUser(Long userId, String oldPassword, String newPassword){
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userEmail = authentication.getName();
+//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+//        String userEmail = authentication.getName();
 
-        User user = userRepo.findByUserEmail(userEmail).orElseThrow(()->new UserNotFound("User not found"));
+        User user = userRepo.findById(userId).orElseThrow(()->new UserNotFound("User not found"));
         String userPassword = user.getUserPassword(); //get password from db
         if(passwordEncoder.matches(oldPassword,userPassword)){ //check id the password from db matches with the old password given by the user
             user.setUserPassword(passwordEncoder.encode(newPassword)); //set the new password
@@ -269,11 +271,12 @@ Example Gateway Aggregated Response:
 
     //initiate the update by generating the otp
     @Transactional
-    public ResponseEntity<?> initiateUpdate(EmailUpdateDTO emailUpdateDTO) throws MessagingException, UnsupportedEncodingException {
+    public ResponseEntity<?> initiateUpdate(Long userId,EmailUpdateDTO emailUpdateDTO) throws MessagingException, UnsupportedEncodingException {
         //we can get the old email from the authentication container
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication(); //get the current authenticated user
-        String currentUserEmail = authentication.getName(); //get the user-email
-        User user = userRepo.findByUserEmail(currentUserEmail).orElseThrow(()-> new UserNotFound("User not found"));
+//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication(); //get the current authenticated user
+//        String currentUserEmail = authentication.getName(); //get the user-email
+        User user = userRepo.findById(userId).orElseThrow(()-> new UserNotFound("User not found"));
+        String currentUserEmail = user.getUserEmail();
 
         //the user will enter the new email and the current password
         //verify first with the user password
@@ -295,24 +298,23 @@ Example Gateway Aggregated Response:
 
     //verify the new email with the otp and update it in the db
     @Transactional
-    public ResponseEntity<?> verifyEmailUpdate(OtpDTO otpDTO){
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication(); //get the current authenticated user
-        String currentUserEmail = authentication.getName(); //get the user-email
-
+    public ResponseEntity<?> verifyEmailUpdate(Long userId, OtpDTO otpDTO){
+//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication(); //get the current authenticated user
+//        String currentUserEmail = authentication.getName(); //get the user-email
+          User user = userRepo.findById(userId).orElseThrow(()-> new UserNotFound("user not found"));
+          String currentUserEmail = user.getUserEmail();
         //verify the otp and update the user email
         if(otpService.isOtpValid(currentUserEmail, otpDTO.getOtp())){
 
             // SECURE RETRIEVAL: Get the pending email from the service/cache
             String newEmail = otpService.getPendingEmail(currentUserEmail);
 
-            User user = userRepo.findByUserEmail(currentUserEmail).orElseThrow();
-
             user.setUserEmail(newEmail); // We trust the cache, not the DTO
             userRepo.save(user);
-            Long userId = user.getUserId();
+
             // Generate NEW tokens immediately for the NEW email
             String newToken = jwtService.generateToken(newEmail,userId);
-            String newRefreshToken = jwtService.generateRefreshToken(newEmail);
+            String newRefreshToken = jwtService.generateRefreshToken(newEmail,userId);
 
             AuthResponseDTO response = AuthResponseDTO.builder()
                     .accessToken(newToken)

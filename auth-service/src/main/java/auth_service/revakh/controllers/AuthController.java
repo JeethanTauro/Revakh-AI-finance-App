@@ -156,8 +156,9 @@ public class AuthController {
         String newAccessToken  = jwtService.generateNewAccessTokenFromRefreshToken(refreshToken);
         AuthResponseDTO authResponseDTO = AuthResponseDTO.builder()
                         .accessToken(newAccessToken)
-                                .refreshToken(refreshToken)
-                                        .build();
+                        .refreshToken(refreshToken)
+                        .message("new access token has been generated")
+                .build();
         return ResponseEntity.ok(authResponseDTO);
     }
 
@@ -183,9 +184,9 @@ public class AuthController {
 
     })
     @DeleteMapping("/user-delete")
-    public ResponseEntity<?> deleteUser(){
+    public ResponseEntity<?> deleteUser(@RequestHeader("userId") Long userId){
         try{
-            return userService.deleteUser();
+            return userService.deleteUser(userId);
         }
         catch (UserDeletionWasNotPerformed e) {
             // DB Failure -> Return 500 Internal Server Error

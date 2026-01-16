@@ -12,10 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.UnsupportedEncodingException;
 
@@ -34,8 +31,8 @@ public class EmailUpdateController {
             @ApiResponse(responseCode = "500", description = "Error sending email")
     })
     @PostMapping("initiate")
-    public ResponseEntity<?> initiateUpdateEmail(@RequestBody EmailUpdateDTO emailUpdateDTO) throws MessagingException, UnsupportedEncodingException {
-        return userService.initiateUpdate(emailUpdateDTO);
+    public ResponseEntity<?> initiateUpdateEmail(@RequestHeader("userId") Long userId, @RequestBody EmailUpdateDTO emailUpdateDTO) throws MessagingException, UnsupportedEncodingException {
+        return userService.initiateUpdate(userId,emailUpdateDTO);
     }
 
     @Operation(description = "used to verify the new email", summary = "Step 2: verify the new email using valid otp")
@@ -48,8 +45,8 @@ public class EmailUpdateController {
             @ApiResponse(responseCode = "500", description = "Server Error")
     })
     @PostMapping("verify")
-    public ResponseEntity<?> verifyNewEmail(@RequestBody OtpDTO otpDTO){
-        return userService.verifyEmailUpdate(otpDTO);
+    public ResponseEntity<?> verifyNewEmail(@RequestHeader("userId") Long userId,@RequestBody OtpDTO otpDTO){
+        return userService.verifyEmailUpdate(userId,otpDTO);
     }
 
 }

@@ -30,13 +30,13 @@ public class JwtService {
 
     private final AuthenticationManager authenticationManager;
 
-    /** Authenticate user (for login use only) */
-    public boolean authenticateUser(String userName, String userPassword) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(userName, userPassword)
-        );
-        return authentication.isAuthenticated();
-    }
+//    /** Authenticate user (for login use only) */
+//    public boolean authenticateUser(String userName, String userPassword) {
+//        Authentication authentication = authenticationManager.authenticate(
+//                new UsernamePasswordAuthenticationToken(userName, userPassword)
+//        );
+//        return authentication.isAuthenticated();
+//    }
 
     /** Generate access token */
     public String generateToken(String userEmail, Long userId) {
@@ -46,9 +46,11 @@ public class JwtService {
     }
 
     /** Generate refresh token */
-    public String generateRefreshToken(String userEmail) {
+    public String generateRefreshToken(String userEmail, Long userId) {
         long refreshExpiration = 7 * 24 * 60 * 60 * 1000; // 7 days
-        return createToken(new HashMap<>(), userEmail, refreshExpiration);
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId",userId);
+        return createToken(claims, userEmail, refreshExpiration);
     }
 
     /** Common token creator */
@@ -82,17 +84,17 @@ public class JwtService {
                 .parseClaimsJws(token)
                 .getBody();
     }
-
-    /** Check token expiry */
-    private boolean isTokenExpired(String token) {
-        return extractClaim(token, Claims::getExpiration).before(new Date());
-    }
-
-    /** Validate access token */
-    public boolean validateToken(String token, UserDetails userDetails) {
-        String userEmail = extractUserEmail(token);
-        return userEmail.equals(userDetails.getUsername()) && !isTokenExpired(token);
-    }
+//
+//    /** Check token expiry */
+//    private boolean isTokenExpired(String token) {
+//        return extractClaim(token, Claims::getExpiration).before(new Date());
+//    }
+//
+//    /** Validate access token */
+//    public boolean validateToken(String token, UserDetails userDetails) {
+//        String userEmail = extractUserEmail(token);
+//        return userEmail.equals(userDetails.getUsername()) && !isTokenExpired(token);
+//    }
 
     /** Generate short-lived password reset token */
     public String generateResetToken(String userEmail) {
@@ -108,7 +110,7 @@ public class JwtService {
                 .compact();
     }
 
-    /** Validate reset token purpose and expiry */
+    //This is used for resetting the password, check the controller for more details
     public boolean validateResetToken(String token) {
         try {
             Claims claims = extractAllClaims(token);
