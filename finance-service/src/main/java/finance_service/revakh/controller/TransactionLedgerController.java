@@ -72,6 +72,7 @@ public class TransactionLedgerController{
                         .source(transactionLedger.getSource())
                         .balance(transactionLedger.getBalanceAfterTransaction())
                         .description(transactionLedger.getDescription())
+                        .date(transactionLedger.getCreatedAt())
                         .build();
                 ledgerResultDTOS.add(transactionLedgerResultDTO);
             }
