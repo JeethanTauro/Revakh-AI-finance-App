@@ -18,7 +18,9 @@ import java.time.Period;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity //treats it as an entity
-@Table(name = "users") //the table name is users
+@Table(name = "users",uniqueConstraints={
+        @UniqueConstraint(columnNames = {"user_international_code","user_phone"})
+})//the table name is users
 @Builder //helps us use the builder design whenever we want to create the user
 @EntityListeners(AuditingEntityListener.class) // for updating date and time when user waa created and updated
 public class User {
