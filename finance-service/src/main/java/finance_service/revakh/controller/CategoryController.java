@@ -36,8 +36,8 @@ public class CategoryController {
             @ApiResponse(responseCode = "200", description = "List of categories retrieved"),
             @ApiResponse(responseCode = "404", description = "User not found")
     })
-    @GetMapping("/{userId}/categories")
-    public ResponseEntity<?> getCategories(@PathVariable Long userId){
+    @GetMapping("/categories")
+    public ResponseEntity<?> getCategories(@RequestHeader("userId") Long userId){
             List<Category> categories = categoryService.getAllCategory(userId);
 
             List<CategoryDTO> categoryDTOList = new ArrayList<>();
@@ -62,8 +62,8 @@ public class CategoryController {
             @ApiResponse(responseCode = "400", description = "Category exists OR Invalid Income Type"),
             @ApiResponse(responseCode = "404", description = "User not found")
     })
-    @PostMapping("/{userId}/categories")
-    public ResponseEntity<?> addCategory(@PathVariable Long userId, @Valid @RequestBody CategoryAddRequestDTO categoryAddRequestDTO){
+    @PostMapping("/categories")
+    public ResponseEntity<?> addCategory(@RequestHeader("userId") Long userId, @Valid @RequestBody CategoryAddRequestDTO categoryAddRequestDTO){
             FinanceUser financeUser = financeUserService.getUser(userId);
             String categoryName = categoryAddRequestDTO.getCategoryName();
             CategoryType type = categoryAddRequestDTO.getType();
@@ -87,8 +87,8 @@ public class CategoryController {
             @ApiResponse(responseCode = "400", description = "Cannot delete: System category / Has Transactions / Has Budgets"),
             @ApiResponse(responseCode = "404", description = "Category or User not found")
     })
-    @DeleteMapping("/{userId}/categories/{categoryId}")
-    public ResponseEntity<?> deleteCategory(@PathVariable Long categoryId, @PathVariable Long userId){
+    @DeleteMapping("/categories/{categoryId}")
+    public ResponseEntity<?> deleteCategory(@PathVariable Long categoryId, @RequestHeader("userId") Long userId){
             FinanceUser financeUser = financeUserService.getUser(userId);
             categoryService.deleteOneCategory(financeUser,categoryId);
             return ResponseEntity.status(HttpStatus.OK).body("Deleted");

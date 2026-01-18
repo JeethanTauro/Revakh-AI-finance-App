@@ -36,8 +36,8 @@ public class TransactionLedgerController{
             @ApiResponse(responseCode = "400", description = "Insufficient Balance / Invalid Category or Type"),
             @ApiResponse(responseCode = "404", description = "User or Category not found")
     })
-    @PostMapping("/{userId}/transaction-ledger")
-    public ResponseEntity<?> createTransaction(@Valid @RequestBody TransactionLedgerRequestDTO dto, @PathVariable Long userId){ //DONT TRUST USER ID FROM REQUESTBODY
+    @PostMapping("/transaction-ledger")
+    public ResponseEntity<?> createTransaction(@Valid @RequestBody TransactionLedgerRequestDTO dto, @RequestHeader("userId") Long userId){ //DONT TRUST USER ID FROM REQUESTBODY
             dto.setUserId(userId);
             TransactionLedgerResultDTO transactionLedgerResultDTO = transactionLedgerService.createTransaction(dto);
             return ResponseEntity.status(HttpStatus.CREATED).body(transactionLedgerResultDTO);
@@ -45,8 +45,8 @@ public class TransactionLedgerController{
 
     // list all the user transactions
     @Operation(summary = "List Transactions", description = "Get all active transactions for a user.")
-    @GetMapping("/{userId}/transaction-ledger/history")
-    public ResponseEntity<?> getAllTransactions(@PathVariable Long userId){
+    @GetMapping("/transaction-ledger/history")
+    public ResponseEntity<?> getAllTransactions(@RequestHeader("userId") Long userId){
             List<TransactionLedgerResultDTO> ledgerResultDTOS = new ArrayList<>();
             List<TransactionLedger> transactionLedgers   = transactionLedgerService.getAllTransactions(userId);
             for(TransactionLedger transactionLedger : transactionLedgers){
@@ -68,9 +68,9 @@ public class TransactionLedgerController{
     }
 
     @Operation(summary = "List Transactions Daily Transactions", description = "Get all daily transactions for a user under each category.")
-    @PostMapping("{userId}/transaction-ledger/daily")
+    @PostMapping("/transaction-ledger/daily")
     public ResponseEntity<?> getDailyTransactions(
-            @PathVariable Long userId,
+            @RequestHeader("userId") Long userId,
             @Parameter(description = "Date for the report (YYYY-MM-DD)")
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate targetDate){
         DailyTransactionsRequestDTO dailyTransactionsRequestDTO = DailyTransactionsRequestDTO.builder()
@@ -83,8 +83,8 @@ public class TransactionLedgerController{
     // fetch a single transaction
     //this is just for our testing purposes and future usecases, we wont be using this on the front end
     @Operation(summary = "Get Single Transaction", description = "Fetch details of a specific transaction ID.")
-    @GetMapping("/{userId}/transaction-ledger/{transactionId}")
-    public ResponseEntity<?> getTransaction(@PathVariable Long userId, @PathVariable Long transactionId){
+    @GetMapping("/transaction-ledger/{transactionId}")
+    public ResponseEntity<?> getTransaction(@RequestHeader("userId") Long userId, @PathVariable Long transactionId){
             TransactionLedger transactionLedger = transactionLedgerService.getTransaction(userId,transactionId);
             TransactionLedgerResultDTO resultDTO = TransactionLedgerResultDTO.builder()
                     .transactionId(transactionLedger.getTransactionId())
@@ -104,8 +104,8 @@ public class TransactionLedgerController{
     //this too is for crud only , its not really necessary to show delete option for transactions as its really important to keep logs
     //but if required we can show delete option
     @Operation(summary = "Delete Transaction", description = "Soft deletes a transaction. Note: Does NOT revert the wallet balance (by design).")
-    @DeleteMapping("/{userId}/transaction-ledger/{transactionId}")
-    public ResponseEntity<?> deleteTransaction(@PathVariable Long userId, @PathVariable Long transactionId){
+    @DeleteMapping("/transaction-ledger/{transactionId}")
+    public ResponseEntity<?> deleteTransaction(@RequestHeader("userId") Long userId, @PathVariable Long transactionId){
             transactionLedgerService.deleteOneTransaction(userId,transactionId);
             return ResponseEntity.status(HttpStatus.OK).body("Transaction Deleted");
     }

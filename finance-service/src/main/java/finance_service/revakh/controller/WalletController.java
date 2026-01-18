@@ -36,8 +36,8 @@ public class WalletController {
             @ApiResponse(responseCode = "200", description = "Wallet retrieved"),
             @ApiResponse(responseCode = "404", description = "User or Wallet not found")
     })
-    @GetMapping("/{userId}/wallet")
-    ResponseEntity<?> getWallet(@PathVariable Long userId){
+    @GetMapping("/wallet")
+    ResponseEntity<?> getWallet(@RequestHeader("userId") Long userId){
             FinanceUser user = financeUserService.getUser(userId);
             Wallet wallet = walletService.getWallet(user);
             WalletDTO walletDTO = WalletDTO.builder()
@@ -57,8 +57,8 @@ public class WalletController {
             @ApiResponse(responseCode = "400", description = "Invalid amount or transaction error"),
             @ApiResponse(responseCode = "404", description = "User not found")
     })
-    @PostMapping("/{userId}/wallet/top-up")
-    ResponseEntity<?> creditToWallet(@PathVariable Long userId, @Valid @RequestBody TransactionLedgerRequestDTO dto) {
+    @PostMapping("/wallet/top-up")
+    ResponseEntity<?> creditToWallet(@RequestHeader("userId") Long userId, @Valid @RequestBody TransactionLedgerRequestDTO dto) {
 
             dto.setUserId(userId);
             dto.setCategoryName(SystemCategories.TOP_UP.name());
@@ -68,7 +68,7 @@ public class WalletController {
 
             TransactionLedgerResultDTO result =
                     transactionLedgerService.createTransaction(dto);
-            return ResponseEntity.status(HttpStatus.CREATED).body(dto.getAmount()+"Credited to wallet");
+            return ResponseEntity.status(HttpStatus.CREATED).body(dto.getAmount()+" Credited to wallet");
 
     }
 

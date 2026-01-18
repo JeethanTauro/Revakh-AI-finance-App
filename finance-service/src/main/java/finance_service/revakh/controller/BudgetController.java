@@ -34,8 +34,8 @@ public class BudgetController {
             @ApiResponse(responseCode = "400", description = "Limit exceeds wallet OR Category is Income type"),
             @ApiResponse(responseCode = "404", description = "User or Category not found")
     })
-    @PostMapping("{userId}/budget")
-    public ResponseEntity<?> addBudget(@PathVariable Long userId,@Valid @RequestBody BudgetRequestDTO budgetRequestDTO){
+    @PostMapping("/budget")
+    public ResponseEntity<?> addBudget(@RequestHeader("userId") Long userId,@Valid @RequestBody BudgetRequestDTO budgetRequestDTO){
             budgetRequestDTO.setFinanceUserId(userId);
             Budget budget = budgetService.createBudget(budgetRequestDTO);
             BudgetDTO budgetDTO = BudgetDTO.builder()
@@ -52,8 +52,8 @@ public class BudgetController {
     }
 
     @Operation(summary = "Update Budget", description = "Updates limit or period. If period changes, creates a new budget and archives the old one.")
-    @PutMapping("{userId}/budget/{budgetId}")
-    public ResponseEntity<?> updateBudget(@PathVariable Long userId,@PathVariable Long budgetId,@Valid @RequestBody BudgetUpdateDTO budgetUpdateDTO){
+    @PutMapping("/budget/{budgetId}")
+    public ResponseEntity<?> updateBudget(@RequestHeader("userId") Long userId,@PathVariable Long budgetId,@Valid @RequestBody BudgetUpdateDTO budgetUpdateDTO){
             budgetUpdateDTO.setUserId(userId);
             Budget budget = budgetService.updateBudget(budgetId,budgetUpdateDTO);
             BudgetDTO budgetDTO = BudgetDTO.builder()
@@ -80,8 +80,8 @@ public class BudgetController {
 
     //gets all budgets but no consumption data
     @Operation(summary = "Get All Budgets (Simple)", description = "Lists active budgets without calculating consumption data (Faster).")
-    @GetMapping("/{userId}/budgets")
-    public ResponseEntity<?> getBudget(@PathVariable Long userId){
+    @GetMapping("/budgets")
+    public ResponseEntity<?> getBudget(@RequestHeader("userId") Long userId){
             List<Budget> budgets = budgetService.getUserBudgets(userId);
             List<BudgetDTO> budgetDTOList = new ArrayList<>();
             for (Budget budget : budgets) {
@@ -111,8 +111,8 @@ public class BudgetController {
 
     //get all budgets with all consumption info
     @Operation(summary = "Get Full Dashboard Data", description = "Lists all budgets WITH full consumption calculations.")
-    @GetMapping("/{userId}/budgets/detailed")
-    public ResponseEntity<?> getBudgetsWithConsumption(@PathVariable Long userId) {
+    @GetMapping("/budgets/detailed")
+    public ResponseEntity<?> getBudgetsWithConsumption(@RequestHeader("userId") Long userId) {
             List<Budget> budgets = budgetService.getUserBudgets(userId);
             List<BudgetDetailedDTO> response = new ArrayList<>();
 
