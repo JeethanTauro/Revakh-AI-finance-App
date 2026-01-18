@@ -98,6 +98,10 @@ public class GlobalExceptionHandler {
         return buildResponse("Category Conflict", HttpStatus.CONFLICT, ex.getMessage(), req);
     }
 
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotAllowed(Exception ex, WebRequest req) {
+        return buildResponse("Method Not Allowed", HttpStatus.METHOD_NOT_ALLOWED, ex.getMessage(), req);
+    }
 
     // --- GLOBAL FALLBACK ---
     @ExceptionHandler(Exception.class)
