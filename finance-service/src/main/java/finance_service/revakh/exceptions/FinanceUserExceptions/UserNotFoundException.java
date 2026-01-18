@@ -1,4 +1,4 @@
-package finance_service.revakh.exceptions;
+package finance_service.revakh.exceptions.FinanceUserExceptions;
 
 public class UserNotFoundException extends RuntimeException {
     public UserNotFoundException(String msg) {

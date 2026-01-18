@@ -4,6 +4,10 @@ package finance_service.revakh.controller;
 
 import finance_service.revakh.DTO.*;
 import finance_service.revakh.exceptions.*;
+import finance_service.revakh.exceptions.BudgetExceptions.BudgetAlreadyExistsException;
+import finance_service.revakh.exceptions.BudgetExceptions.BudgetNotFoundException;
+import finance_service.revakh.exceptions.CategoryExceptions.CategoryNotFoundException;
+import finance_service.revakh.exceptions.FinanceUserExceptions.UserNotFoundException;
 import finance_service.revakh.models.Budget;
 import finance_service.revakh.service.BudgetService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,7 +36,6 @@ public class BudgetController {
     })
     @PostMapping("{userId}/budget")
     public ResponseEntity<?> addBudget(@PathVariable Long userId,@Valid @RequestBody BudgetRequestDTO budgetRequestDTO){
-        try{
             budgetRequestDTO.setFinanceUserId(userId);
             Budget budget = budgetService.createBudget(budgetRequestDTO);
             BudgetDTO budgetDTO = BudgetDTO.builder()
@@ -46,26 +49,11 @@ public class BudgetController {
                     .isActive(budget.isActive())
                     .build();
             return ResponseEntity.status(HttpStatus.CREATED).body(budgetDTO);
-
-        }catch (UserNotFoundException u){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }catch (CategoryNotFoundException c){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Category not found");
-        }catch (BudgetExceedsWalletException be){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Budget exceeds wallet");
-        }catch (BudgetAlreadyExistsException ba){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Budget already exists");
-        }catch (IllegalArgumentException i){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Budget limit or category type issue");
-
-        }
-
     }
 
     @Operation(summary = "Update Budget", description = "Updates limit or period. If period changes, creates a new budget and archives the old one.")
     @PutMapping("{userId}/budget/{budgetId}")
     public ResponseEntity<?> updateBudget(@PathVariable Long userId,@PathVariable Long budgetId,@Valid @RequestBody BudgetUpdateDTO budgetUpdateDTO){
-        try{
             budgetUpdateDTO.setUserId(userId);
             Budget budget = budgetService.updateBudget(budgetId,budgetUpdateDTO);
             BudgetDTO budgetDTO = BudgetDTO.builder()
@@ -79,26 +67,14 @@ public class BudgetController {
                     .isActive(budget.isActive())
                     .build();
             return ResponseEntity.status(HttpStatus.OK).body(budgetDTO);
-
-        }catch (BudgetNotFoundException b){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Budget not found");
-        }catch (UserNotFoundException u){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }catch (BudgetExceedsWalletException e){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Budget exceeds wallet");
-        }
     }
 
 
     @Operation(summary = "Delete Budget", description = "Soft deletes a budget (sets active=false).")
     @DeleteMapping("/budget/{budgetId}")
     public ResponseEntity<?> deleteBudget(@PathVariable Long budgetId){
-        try{
             budgetService.deleteOneBudget(budgetId);
             return ResponseEntity.status(HttpStatus.OK).body("Deleted");
-        }catch (BudgetNotFoundException b){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Budget not found");
-        }
 
     }
 
@@ -106,7 +82,6 @@ public class BudgetController {
     @Operation(summary = "Get All Budgets (Simple)", description = "Lists active budgets without calculating consumption data (Faster).")
     @GetMapping("/{userId}/budgets")
     public ResponseEntity<?> getBudget(@PathVariable Long userId){
-        try {
             List<Budget> budgets = budgetService.getUserBudgets(userId);
             List<BudgetDTO> budgetDTOList = new ArrayList<>();
             for (Budget budget : budgets) {
@@ -123,21 +98,14 @@ public class BudgetController {
                 budgetDTOList.add(budgetDTO);
             }
             return ResponseEntity.status(HttpStatus.OK).body(budgetDTOList);
-        }catch (UserNotFoundException u){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }
     }
 
     //gives only consumption of one budget
     @Operation(summary = "Get Consumption for One Budget", description = "Calculates spent, remaining, and percentage for a specific budget.")
     @GetMapping("/budget/consumption/{budgetId}")
     public ResponseEntity<?> getConsumption(@PathVariable Long budgetId){
-        try{
             ConsumptionDTO consumptionDTO = budgetService.computeConsumption(budgetId);
             return  ResponseEntity.status(HttpStatus.OK).body(consumptionDTO);
-        }catch (BudgetNotFoundException b){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Budget not found");
-        }
 
     }
 
@@ -145,7 +113,6 @@ public class BudgetController {
     @Operation(summary = "Get Full Dashboard Data", description = "Lists all budgets WITH full consumption calculations.")
     @GetMapping("/{userId}/budgets/detailed")
     public ResponseEntity<?> getBudgetsWithConsumption(@PathVariable Long userId) {
-        try {
             List<Budget> budgets = budgetService.getUserBudgets(userId);
             List<BudgetDetailedDTO> response = new ArrayList<>();
 
@@ -175,12 +142,6 @@ public class BudgetController {
                 response.add(dto);
             }
             return  ResponseEntity.status(HttpStatus.OK).body(response);
-
-        }catch (UserNotFoundException u){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        } catch (BudgetNotFoundException b){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Budget not found");
-        }
     }
 
     //this endpoint is mainly for testing to see if the reset of periods in budgets work or not

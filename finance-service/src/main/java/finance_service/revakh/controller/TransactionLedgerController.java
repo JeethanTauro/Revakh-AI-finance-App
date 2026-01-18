@@ -1,15 +1,13 @@
 package finance_service.revakh.controller;
 
 import finance_service.revakh.DTO.DailyTransactionsRequestDTO;
-import finance_service.revakh.DTO.DailyTransactionsResponseDTO;
 import finance_service.revakh.DTO.TransactionLedgerRequestDTO;
 import finance_service.revakh.DTO.TransactionLedgerResultDTO;
-import finance_service.revakh.exceptions.InsufficientBalanceException;
-import finance_service.revakh.exceptions.TransactionNotFound;
-import finance_service.revakh.exceptions.UserNotFoundException;
+import finance_service.revakh.exceptions.TransactionExceptions.InsufficientBalanceException;
+import finance_service.revakh.exceptions.TransactionExceptions.TransactionNotFound;
+import finance_service.revakh.exceptions.FinanceUserExceptions.UserNotFoundException;
 import finance_service.revakh.models.TransactionLedger;
 import finance_service.revakh.service.TransactionLedgerService;
-import finance_service.revakh.service.WalletService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -19,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -41,24 +38,15 @@ public class TransactionLedgerController{
     })
     @PostMapping("/{userId}/transaction-ledger")
     public ResponseEntity<?> createTransaction(@Valid @RequestBody TransactionLedgerRequestDTO dto, @PathVariable Long userId){ //DONT TRUST USER ID FROM REQUESTBODY
-        try{
             dto.setUserId(userId);
             TransactionLedgerResultDTO transactionLedgerResultDTO = transactionLedgerService.createTransaction(dto);
             return ResponseEntity.status(HttpStatus.CREATED).body(transactionLedgerResultDTO);
-        }catch (UserNotFoundException u){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }catch (InsufficientBalanceException i){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Insufficient Balance");
-        }catch (IllegalArgumentException il){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Wrong arguments in the request");
-        }
     }
 
     // list all the user transactions
     @Operation(summary = "List Transactions", description = "Get all active transactions for a user.")
     @GetMapping("/{userId}/transaction-ledger/history")
     public ResponseEntity<?> getAllTransactions(@PathVariable Long userId){
-        try{
             List<TransactionLedgerResultDTO> ledgerResultDTOS = new ArrayList<>();
             List<TransactionLedger> transactionLedgers   = transactionLedgerService.getAllTransactions(userId);
             for(TransactionLedger transactionLedger : transactionLedgers){
@@ -77,9 +65,6 @@ public class TransactionLedgerController{
                 ledgerResultDTOS.add(transactionLedgerResultDTO);
             }
             return ResponseEntity.status(HttpStatus.OK).body(ledgerResultDTOS);
-        }catch (UserNotFoundException u){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }
     }
 
     @Operation(summary = "List Transactions Daily Transactions", description = "Get all daily transactions for a user under each category.")
@@ -100,7 +85,6 @@ public class TransactionLedgerController{
     @Operation(summary = "Get Single Transaction", description = "Fetch details of a specific transaction ID.")
     @GetMapping("/{userId}/transaction-ledger/{transactionId}")
     public ResponseEntity<?> getTransaction(@PathVariable Long userId, @PathVariable Long transactionId){
-        try{
             TransactionLedger transactionLedger = transactionLedgerService.getTransaction(userId,transactionId);
             TransactionLedgerResultDTO resultDTO = TransactionLedgerResultDTO.builder()
                     .transactionId(transactionLedger.getTransactionId())
@@ -114,11 +98,6 @@ public class TransactionLedgerController{
                     .description(transactionLedger.getDescription())
                     .build();
             return ResponseEntity.status(HttpStatus.OK).body(resultDTO);
-        }catch (UserNotFoundException u){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }catch (TransactionNotFound t){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Transaction not found");
-        }
     }
 
     // delete a transaction
@@ -127,13 +106,7 @@ public class TransactionLedgerController{
     @Operation(summary = "Delete Transaction", description = "Soft deletes a transaction. Note: Does NOT revert the wallet balance (by design).")
     @DeleteMapping("/{userId}/transaction-ledger/{transactionId}")
     public ResponseEntity<?> deleteTransaction(@PathVariable Long userId, @PathVariable Long transactionId){
-        try{
             transactionLedgerService.deleteOneTransaction(userId,transactionId);
             return ResponseEntity.status(HttpStatus.OK).body("Transaction Deleted");
-        }catch (UserNotFoundException u){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }catch (TransactionNotFound t){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Transaction not found");
-        }
     }
 }

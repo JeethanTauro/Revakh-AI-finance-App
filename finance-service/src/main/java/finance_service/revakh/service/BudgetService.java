@@ -5,7 +5,9 @@ import finance_service.revakh.DTO.BudgetRequestDTO;
 import finance_service.revakh.DTO.BudgetUpdateDTO;
 import finance_service.revakh.events.BudgetCreatedEvent;
 import finance_service.revakh.events.BudgetUpdatedEvent;
-import finance_service.revakh.exceptions.*;
+import finance_service.revakh.exceptions.BudgetExceptions.BudgetAlreadyExistsException;
+import finance_service.revakh.exceptions.BudgetExceptions.BudgetNotFoundException;
+import finance_service.revakh.exceptions.BudgetExceptions.BudgetValidationException;
 import finance_service.revakh.messages.BudgetEventPublisher;
 import finance_service.revakh.models.*;
 import finance_service.revakh.repo.BudgetRepo;
@@ -42,21 +44,21 @@ public class BudgetService {
         Category category = categoryService.getCategoryByIdAndUser(dto.getCategoryId(),financeUser);
 
         if (!category.getFinanceUser().equals(financeUser)) {
-            throw new IllegalArgumentException("Category does not belong to this user");
+            throw new BudgetValidationException("Category Does Not Belong To This User");
         }
 
         if (category.getType() == CategoryType.INCOME) {
-            throw new IllegalArgumentException("Budgets are only allowed for EXPENSE categories");
+            throw new BudgetValidationException("Budgets Are Only Allowed For EXPENSE Categories");
         }
 
         if (dto.getLimitAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Budget limit must be > 0");
+            throw new BudgetValidationException("Budget Cannot be 0");
         }
 
         if (dto.isActive()) {
 
             if (budgetRepo.existsActiveBudget(financeUser, category, dto.getPeriod())) {
-                throw new BudgetAlreadyExistsException("Active budget exists for this category & period");
+                throw new BudgetAlreadyExistsException("Active Budget Exists For This Category & Period");
             }
         }
 
@@ -98,7 +100,7 @@ public class BudgetService {
     //delete one budget
     @Transactional
     public void deleteOneBudget(Long id){
-        Budget budget = budgetRepo.findById(id).orElseThrow(()-> new BudgetNotFoundException("Budget not found"));
+        Budget budget = budgetRepo.findById(id).orElseThrow(()-> new BudgetNotFoundException("Budget Not Found"));
         budget.setActive(false);
         Budget savedBudget = budgetRepo.save(budget);
 
@@ -108,7 +110,7 @@ public class BudgetService {
     //delete all budgets under the username
     @Transactional
     public void deleteAllBudgetForTheUser(FinanceUser user){
-                List<Budget> list = budgetRepo.findAllByFinanceUserAndIsActiveTrue(user).orElseThrow(()-> new BudgetNotFoundException("Budget not found"));
+                List<Budget> list = budgetRepo.findAllByFinanceUserAndIsActiveTrue(user).orElseThrow(()-> new BudgetNotFoundException("Budget Not Found"));
         for(Budget b : list){
             b.setActive(false);
         }
@@ -120,12 +122,36 @@ public class BudgetService {
         }
     }
 
+    @Transactional
+    public void deactivateBudgetsByCategory(Category category) {
+        // 1. Find all budgets tied to this category that are still active
+        List<Budget> activeBudgets = budgetRepo.findAllByCategoryAndIsActiveTrue(category);
+
+        if (activeBudgets.isEmpty()) {
+            return; // Nothing to do
+        }
+
+        // 2. Mark them as inactive
+        activeBudgets.forEach(budget -> {
+            budget.setActive(false);
+
+            // 3. Publish the update event so other services stay in sync
+            budgetEventPublisher.budgetUpdatedPublisher(mapToUpdateEvent(budget));
+        });
+
+        // 4. Save the batch update
+        budgetRepo.saveAll(activeBudgets);
+
+        log.info("Deactivated {} active budgets for Category: {}",
+                activeBudgets.size(), category.getName());
+    }
+
     //update budget
     @Transactional
     public Budget updateBudget(Long id, BudgetUpdateDTO dto) {
 
         Budget old = budgetRepo.findById(id)
-                .orElseThrow(() -> new BudgetNotFoundException("Budget not found"));
+                .orElseThrow(() -> new BudgetNotFoundException("Budget Not Found"));
 
         boolean periodChanged = !old.getPeriod().equals(dto.getPeriod());
         boolean limitChanged = dto.getLimitAmount() != null &&
@@ -183,12 +209,12 @@ public class BudgetService {
     public ConsumptionDTO computeConsumption(Long budgetId) {
 
         Budget budget = budgetRepo.findById(budgetId)
-                .orElseThrow(() -> new BudgetNotFoundException("Budget not found"));
+                .orElseThrow(() -> new BudgetNotFoundException("Budget Not Found"));
 
         FinanceUser user = budget.getFinanceUser();
         Category category = budget.getCategory();
         if (category != null && !category.getFinanceUser().equals(user)) {
-            throw new IllegalArgumentException("Category does not belong to this user");
+            throw new BudgetValidationException("Category Does Not Belong To This User");
         }
 
 

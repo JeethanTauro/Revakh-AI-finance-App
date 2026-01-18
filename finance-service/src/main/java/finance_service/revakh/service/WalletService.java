@@ -1,12 +1,11 @@
 package finance_service.revakh.service;
 
-import finance_service.revakh.DTO.TransactionLedgerRequestDTO;
-import finance_service.revakh.exceptions.InsufficientBalanceException;
-import finance_service.revakh.exceptions.WalletNotFoundException;
+import finance_service.revakh.exceptions.TransactionExceptions.InsufficientBalanceException;
+import finance_service.revakh.exceptions.WalletExceptions.WalletNotFoundException;
+import finance_service.revakh.exceptions.WalletExceptions.WalletValidationException;
 import finance_service.revakh.models.FinanceUser;
 import finance_service.revakh.models.TransactionType;
 import finance_service.revakh.models.Wallet;
-import finance_service.revakh.repo.FinanceUserRepo;
 import finance_service.revakh.repo.WalletRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,22 +49,22 @@ public class WalletService {
         BigDecimal newBalance;
 
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Amount must be greater than zero");
+            throw new WalletValidationException("Amount Must Be Greater Than Zero");
         }
         if (!wallet.getFinanceUser().getUserId().equals(user.getUserId())) {
-            throw new IllegalStateException("Wallet does not belong to this user");
+            throw new WalletValidationException("Wallet Does Not Belong To This User");
         }
         if (type == TransactionType.CREDIT && amount.signum() <= 0)
-            throw new IllegalArgumentException("Credit amount must be positive");
+            throw new WalletValidationException("Credit Amount Must Be Positive");
 
         if (type == TransactionType.DEBIT && amount.signum() <= 0)
-            throw new IllegalArgumentException("Debit amount must be positive");
+            throw new WalletValidationException("Debit Amount Must Be Positive");
 
         if (type == TransactionType.CREDIT) {
             newBalance = oldBalance.add(amount);
         } else { //DEBIT
             if (oldBalance.compareTo(amount) < 0) {
-                throw new InsufficientBalanceException("Not enough balance");
+                throw new WalletValidationException("Not Enough Balance");
             }
             newBalance = oldBalance.subtract(amount);
         }

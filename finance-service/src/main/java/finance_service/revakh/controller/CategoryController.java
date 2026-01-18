@@ -2,9 +2,9 @@ package finance_service.revakh.controller;
 
 import finance_service.revakh.DTO.CategoryAddRequestDTO;
 import finance_service.revakh.DTO.CategoryDTO;
-import finance_service.revakh.exceptions.CategoryExistsException;
-import finance_service.revakh.exceptions.CategoryNotFoundException;
-import finance_service.revakh.exceptions.UserNotFoundException;
+import finance_service.revakh.exceptions.CategoryExceptions.CategoryExistsException;
+import finance_service.revakh.exceptions.CategoryExceptions.CategoryNotFoundException;
+import finance_service.revakh.exceptions.FinanceUserExceptions.UserNotFoundException;
 import finance_service.revakh.models.Category;
 import finance_service.revakh.models.CategoryType;
 import finance_service.revakh.models.FinanceUser;
@@ -38,7 +38,6 @@ public class CategoryController {
     })
     @GetMapping("/{userId}/categories")
     public ResponseEntity<?> getCategories(@PathVariable Long userId){
-        try{
             List<Category> categories = categoryService.getAllCategory(userId);
 
             List<CategoryDTO> categoryDTOList = new ArrayList<>();
@@ -53,9 +52,6 @@ public class CategoryController {
                 categoryDTOList.add(categoryDTO);
             }
             return ResponseEntity.ok(categoryDTOList);
-        }catch (UserNotFoundException u){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }
     }
 
 
@@ -68,7 +64,6 @@ public class CategoryController {
     })
     @PostMapping("/{userId}/categories")
     public ResponseEntity<?> addCategory(@PathVariable Long userId, @Valid @RequestBody CategoryAddRequestDTO categoryAddRequestDTO){
-        try{
             FinanceUser financeUser = financeUserService.getUser(userId);
             String categoryName = categoryAddRequestDTO.getCategoryName();
             CategoryType type = categoryAddRequestDTO.getType();
@@ -83,16 +78,6 @@ public class CategoryController {
                     .isSystem(category.isSystem())
                     .build();
             return ResponseEntity.status(HttpStatus.CREATED).body(categoryDTO);
-
-        }catch (UserNotFoundException u){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }
-        catch (CategoryExistsException c){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Category exists");
-        }
-        catch (IllegalArgumentException i){
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Only SALARY and TOP_UP allowed under INCOME type");
-        }
     }
 
     //delete/disable a category
@@ -104,17 +89,9 @@ public class CategoryController {
     })
     @DeleteMapping("/{userId}/categories/{categoryId}")
     public ResponseEntity<?> deleteCategory(@PathVariable Long categoryId, @PathVariable Long userId){
-        try{
             FinanceUser financeUser = financeUserService.getUser(userId);
-            Category category = categoryService.getCategoryByIdAndUser(categoryId,financeUser);
-            categoryService.deleteOneCategory(financeUser,category.getName());
+            categoryService.deleteOneCategory(financeUser,categoryId);
             return ResponseEntity.status(HttpStatus.OK).body("Deleted");
-        }catch (UserNotFoundException u){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }
-        catch (CategoryNotFoundException c){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Category not found");
-        }
     }
 
 }

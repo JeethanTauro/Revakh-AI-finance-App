@@ -48,4 +48,6 @@ public interface BudgetRepo extends JpaRepository<Budget,Long>{
     Optional<Budget> findByCategoryIdAndUserId(@Param("categoryId") Long categoryId, @Param("userId") Long userId);
 
     List<Budget> findAllByFinanceUser_UserId(Long userId);
+
+    List<Budget> findAllByCategoryAndIsActiveTrue(Category category);
 }

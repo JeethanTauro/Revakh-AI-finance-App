@@ -5,9 +5,10 @@ import finance_service.revakh.DTO.DailyTransactionsResponseDTO;
 import finance_service.revakh.DTO.TransactionLedgerRequestDTO;
 import finance_service.revakh.DTO.TransactionLedgerResultDTO;
 import finance_service.revakh.events.TransactionCreatedEvent;
-import finance_service.revakh.exceptions.OptimisticRetryFailedException;
-import finance_service.revakh.exceptions.InsufficientBalanceException;
-import finance_service.revakh.exceptions.TransactionNotFound;
+import finance_service.revakh.exceptions.TransactionExceptions.OptimisticRetryFailedException;
+import finance_service.revakh.exceptions.TransactionExceptions.InsufficientBalanceException;
+import finance_service.revakh.exceptions.TransactionExceptions.TransactionNotFound;
+import finance_service.revakh.exceptions.TransactionExceptions.TransactionValidationException;
 import finance_service.revakh.messages.TransactionEventPublisher;
 import finance_service.revakh.models.*;
 import finance_service.revakh.repo.TransactionLedgerRepo;
@@ -66,16 +67,16 @@ public class TransactionLedgerService {
     public TransactionLedgerResultDTO createTransaction(TransactionLedgerRequestDTO dto) {
 
         // Basic request validation (defensive)
-        if (dto == null) throw new IllegalArgumentException("Request is null");
-        if (dto.getUserId() == null) throw new IllegalArgumentException("userId is required");
+        if (dto == null) throw new TransactionValidationException("Request Is Null");
+        if (dto.getUserId() == null) throw new TransactionValidationException("UserId Is Required");
         if (dto.getAmount() == null || dto.getAmount().compareTo(BigDecimal.ZERO) <= 0)
-            throw new IllegalArgumentException("amount must be > 0");
+            throw new TransactionValidationException("Amount Must be greater than 0");
         if (dto.getCategoryName() == null || dto.getCategoryName().trim().isEmpty())
-            throw new IllegalArgumentException("categoryName is required");
+            throw new TransactionValidationException("CategoryName Is Required");
         if (dto.getTransactionType() == null || dto.getTransactionType().toString().trim().isEmpty())
-            throw new IllegalArgumentException("transactionType is required");
+            throw new TransactionValidationException("TransactionType Is Required");
         if (dto.getSource() == null || dto.getSource().toString().trim().isEmpty())
-            throw new IllegalArgumentException("source is required");
+            throw new TransactionValidationException("Source Is Required");
 
         // Resolve enums early and handle invalid values with clear messages
         final TransactionType type;
@@ -83,12 +84,12 @@ public class TransactionLedgerService {
         try {
             type = dto.getTransactionType();
         } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid transactionType. Allowed: CREDIT or DEBIT");
+            throw new TransactionValidationException("Invalid transactionType. Allowed: CREDIT or DEBIT");
         }
         try {
             source = dto.getSource();
         } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid source. Allowed: MANUAL, UPI, NET_BANKING");
+            throw new TransactionValidationException("Invalid source. Allowed: MANUAL, UPI, NET_BANKING");
         }
 
         // Fetch required domain entities (validate cross-entity rules)
@@ -98,10 +99,10 @@ public class TransactionLedgerService {
 
         // Validate category <-> transaction type rules
         if (category.getType() == CategoryType.INCOME && type != TransactionType.CREDIT) {
-            throw new IllegalArgumentException("INCOME category accepts only CREDIT transactions");
+            throw new TransactionValidationException("INCOME category accepts only CREDIT transactions");
         }
         if (category.getType() == CategoryType.EXPENSE && type != DEBIT) {
-            throw new IllegalArgumentException("EXPENSE category accepts only DEBIT transactions");
+            throw new TransactionValidationException("EXPENSE category accepts only DEBIT transactions");
         }
 
         // Prepare transaction template for programmatic transaction control
@@ -151,7 +152,7 @@ public class TransactionLedgerService {
 
             } catch (ObjectOptimisticLockingFailureException e) {
                 if (attempt >= MAX_RETRY) {
-                    throw new OptimisticRetryFailedException("System busy, please try again.");
+                    throw new OptimisticRetryFailedException("System Busy, Please Try Again.");
                 }
                 // Loop automatically retries
             } catch (InsufficientBalanceException | IllegalArgumentException e) {

@@ -31,4 +31,6 @@ public interface CategoryRepo extends JpaRepository<Category, Long> {
     // FIX 2: Explicitly map 'userId' to 'financeUser.userId'
     @Query("SELECT c FROM Category c WHERE c.financeUser.userId = :userId")
     List<Category> findAllByUserId(@Param("userId") Long userId);
+
+    Category findByFinanceUserAndCategoryIdAndIsActiveTrue(FinanceUser financeUser, Long categoryId);
 }

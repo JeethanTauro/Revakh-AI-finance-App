@@ -1,15 +1,13 @@
 package finance_service.revakh.service;
 
-import finance_service.revakh.exceptions.*;
+import finance_service.revakh.exceptions.CategoryExceptions.CategoryExistsException;
+import finance_service.revakh.exceptions.CategoryExceptions.CategoryNotFoundException;
 import finance_service.revakh.models.Category;
 import finance_service.revakh.models.CategoryType;
 import finance_service.revakh.models.FinanceUser;
 import finance_service.revakh.models.SystemCategories;
-import finance_service.revakh.repo.BudgetRepo;
 import finance_service.revakh.repo.CategoryRepo;
-import finance_service.revakh.repo.FinanceUserRepo;
-import finance_service.revakh.repo.TransactionLedgerRepo;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +20,7 @@ import java.util.List;
 //its a go ahead
 
 @Service
+@Slf4j
 public class CategoryService {
     private final CategoryRepo categoryRepo;
     private final TransactionLedgerService transactionLedgerService;
@@ -60,6 +59,7 @@ public class CategoryService {
 
 
     //delete all category belongiing to a user
+    //only if the user gets deleted
     @Transactional
     public void deleteAllCategoriesForUser(FinanceUser user) {
         List<Category> categories = categoryRepo.findAllByFinanceUserAndIsActiveTrue(user);
@@ -70,32 +70,29 @@ public class CategoryService {
     }
 
     //delete one category
+    //now the user wnats to delete a category, we will delete all the respective budgets but still keep the transactions
     @Transactional
-    public void deleteOneCategory(FinanceUser user, String name){
+    public void deleteOneCategory(FinanceUser user, Long categoryId){
         //imagine u have alrewady some ledger entries for this category how will u delete it, u will basically lose data
         // also dont delete default categories
-        // userrs must manuailly delete their transactions before deleing their categories, much safer
-        // Normalize Case
-        String normalizedName = name.trim().toUpperCase();
 
-        Category category = categoryRepo.findByFinanceUserAndNameIgnoreCaseAndIsActiveTrue(user, normalizedName)
-                .orElseThrow(() -> new CategoryNotFoundException("Category Not Found"));
-
-        if( transactionLedgerService.transactionExistsByCategory(category)){
-            throw new CategoryHasTransactionException("Category has a transaction");
+        Category category = categoryRepo.findByFinanceUserAndCategoryIdAndIsActiveTrue(user,categoryId);
+        if(category == null){
+            throw new CategoryNotFoundException("Category Not Found");
         }
-
-        boolean hasActiveBudgets = budgetService.categoryHasActiveBudgets(category);
-        if (hasActiveBudgets) {
-            throw new CategoryHasBudgetException("Category has an active budget");
-        }
-
         if (category.isSystem()) {
             throw new RuntimeException("System default categories cannot be deleted");
         }
 
+        if (budgetService.categoryHasActiveBudgets(category)) {
+            budgetService.deactivateBudgetsByCategory(category);
+        }
+
         category.setActive(false);
         categoryRepo.save(category);
+
+        log.info("Category [{}] and its budgets were deactivated for user [{}]",
+                category.getName(), user.getUserId());
     }
     //add category
     @Transactional

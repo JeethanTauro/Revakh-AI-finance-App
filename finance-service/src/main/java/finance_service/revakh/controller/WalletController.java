@@ -4,9 +4,8 @@ package finance_service.revakh.controller;
 import finance_service.revakh.DTO.TransactionLedgerRequestDTO;
 import finance_service.revakh.DTO.TransactionLedgerResultDTO;
 import finance_service.revakh.DTO.WalletDTO;
-import finance_service.revakh.exceptions.UserNotFoundException;
+import finance_service.revakh.exceptions.FinanceUserExceptions.UserNotFoundException;
 import finance_service.revakh.models.*;
-import finance_service.revakh.repo.FinanceUserRepo;
 import finance_service.revakh.service.FinanceUserService;
 import finance_service.revakh.service.TransactionLedgerService;
 import finance_service.revakh.service.WalletService;
@@ -39,7 +38,6 @@ public class WalletController {
     })
     @GetMapping("/{userId}/wallet")
     ResponseEntity<?> getWallet(@PathVariable Long userId){
-        try{
             FinanceUser user = financeUserService.getUser(userId);
             Wallet wallet = walletService.getWallet(user);
             WalletDTO walletDTO = WalletDTO.builder()
@@ -48,10 +46,6 @@ public class WalletController {
                     .userId(userId)
                     .build();
             return ResponseEntity.status(HttpStatus.OK).body(walletDTO);
-        }catch (UserNotFoundException u){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }
-
     }
 
     //add money into wallet
