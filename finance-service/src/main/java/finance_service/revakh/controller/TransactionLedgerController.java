@@ -68,7 +68,7 @@ public class TransactionLedgerController{
     }
 
     @Operation(summary = "List Transactions Daily Transactions", description = "Get all daily transactions for a user under each category.")
-    @PostMapping("/transaction-ledger/daily")
+    @GetMapping("/transaction-ledger/daily")
     public ResponseEntity<?> getDailyTransactions(
             @RequestHeader("userId") Long userId,
             @Parameter(description = "Date for the report (YYYY-MM-DD)")
@@ -78,7 +78,7 @@ public class TransactionLedgerController{
                 .targetDate(targetDate)
                 .build();
 
-        return transactionLedgerService.getDailyTransactions(dailyTransactionsRequestDTO);
+        return ResponseEntity.ok(transactionLedgerService.getDailyTransactions(dailyTransactionsRequestDTO));
     }
     // fetch a single transaction
     //this is just for our testing purposes and future usecases, we wont be using this on the front end
