@@ -1,9 +1,6 @@
 package auth_service.revakh.services;
 
-import auth_service.revakh.Exceptions.UserAlreadyExistsException;
-import auth_service.revakh.Exceptions.UserCannotBeDeletedException;
-import auth_service.revakh.Exceptions.UserLoginException;
-import auth_service.revakh.Exceptions.UserNotFound;
+import auth_service.revakh.Exceptions.*;
 import auth_service.revakh.dto.*;
 import auth_service.revakh.events.UserCreatedEvent;
 import auth_service.revakh.events.UserDeletedEvent;
@@ -15,12 +12,9 @@ import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.io.UnsupportedEncodingException;
 import java.time.LocalDate;
@@ -145,7 +139,7 @@ Example Gateway Aggregated Response:
         // 1. Validate OTP
         boolean isOtpValid = otpService.isOtpValid(email, otp);
         if (!isOtpValid) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid or expired OTP");
+            throw new InvalidOtpException("Invalid OTP or Expired OTP");
         }
 
         // 2. Find User
@@ -196,7 +190,7 @@ Example Gateway Aggregated Response:
 //            Authentication authentication = SecurityContextHolder.getContext().getAuthentication(); //get the current authenticated user
 //            String userEmail = authentication.getName(); //get the user-email
 
-            User user = userRepo.findById(userId).orElseThrow(()-> new UserCannotBeDeletedException("User could not be deleted")); //find the user by userEmail
+            User user = userRepo.findById(userId).orElseThrow(()-> new UserNotFound("User not found")); //find the user by userEmail
             UserDeletedEvent userDeletedEvent = UserDeletedEvent.builder()
                     .userId(user.getUserId())
                     .userName(user.getUserName())
@@ -207,16 +201,32 @@ Example Gateway Aggregated Response:
                     .source("auth-service")
                     .eventVersion("v1").
                     build();
-            try{
+
                 //try to delete
-                userRepo.delete(user);
-                userRepo.flush();
-            }catch (Exception e){
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("User could not be deleted");
-            }
+           try{
+               userRepo.delete(user);
+               userRepo.flush();
+           }catch (Exception e){
+               return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("User could not be deleted");
+           }
+
             userEventPublisher.userDeletedEventPublisher(userDeletedEvent);
             return  ResponseEntity.ok("User deleted successfully");
 
+    }
+
+    public ResponseEntity<?> refreshToken(RefreshTokenRequestDTO refreshTokenRequestDTO){
+        String refreshToken = refreshTokenRequestDTO.getRefresh();
+        if(!jwtService.validateRefreshToken(refreshToken)){
+            throw new RefreshTokenExpiredException("Token has been expired");
+        }
+        String newAccessToken  = jwtService.generateNewAccessTokenFromRefreshToken(refreshToken);
+        AuthResponseDTO authResponseDTO = AuthResponseDTO.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(refreshToken)
+                .message("new access token has been generated")
+                .build();
+        return ResponseEntity.ok(authResponseDTO);
     }
 
 
@@ -232,7 +242,7 @@ Example Gateway Aggregated Response:
     public ResponseEntity<?> userLogin(UserLoginDTO userLoginDTO){
         String userEmail = userLoginDTO.getUserEmail();
         String userPassword =  userLoginDTO.getUserPassword();
-        User user = userRepo.findByUserEmail(userEmail).orElseThrow(()->new UserLoginException("Wrong username or password"));
+        User user = userRepo.findByUserEmail(userEmail).orElseThrow(()->new UserNotFound("User not found"));
         //so before checking the password we must check if the user email is verified
         if (!user.isVerified()) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -254,6 +264,7 @@ Example Gateway Aggregated Response:
     }
 
     //update password
+    @Transactional
     public ResponseEntity<?> updatePasswordAuthenticatedUser(Long userId, String oldPassword, String newPassword){
 
 //        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -266,7 +277,9 @@ Example Gateway Aggregated Response:
             userRepo.save(user);
             return ResponseEntity.ok("Password changed successfully");
         }
-        return ResponseEntity.badRequest().body("Wrong Password");
+        else {
+            throw new UserLoginException("Wrong username or password");
+        }
     }
 
     //initiate the update by generating the otp
@@ -282,7 +295,7 @@ Example Gateway Aggregated Response:
         //verify first with the user password
         // Check if new email is already taken! (Important missing check)
         if(userRepo.existsByUserEmail(emailUpdateDTO.getNewEmail())) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Email already in use");
+           throw new UserAlreadyExistsException("User already exists");
         }
 
         if(passwordEncoder.matches(emailUpdateDTO.getCurrentPassword(), user.getUserPassword())){
@@ -292,7 +305,7 @@ Example Gateway Aggregated Response:
             otpService.sendOTPEmail(emailUpdateDTO.getNewEmail(), otp);
             return ResponseEntity.ok("OTP sent");
         }else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Wrong password");
+           throw new UserLoginException("Wrong username or password");
         }
     }
 
@@ -325,7 +338,7 @@ Example Gateway Aggregated Response:
             return ResponseEntity.ok(response);
         }
         else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Wrong otp");
+            throw new InvalidOtpException("Invalid otp");
         }
     }
 
