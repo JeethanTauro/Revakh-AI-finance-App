@@ -206,14 +206,14 @@ public class TransactionLedgerService {
                 .findAllByUserIdAndOccurredAtBetween(dailyTransactionsRequestDTO.getUserId(), startOfDay, endOfDay);
 
         double totalIncome = transactions.stream()
-                .filter(t -> t.getTransactionType().name().equalsIgnoreCase("INCOME"))
+                .filter(t -> t.getTransactionType()==TransactionType.CREDIT)
                 .map(TransactionLedger::getAmount) // Get the BigDecimal
                 .mapToDouble(BigDecimal::doubleValue) // Convert BigDecimal to double
                 .sum();
 
 // Calculate Total Expense
         double totalExpense = transactions.stream()
-                .filter(t -> t.getTransactionType().name().equalsIgnoreCase("EXPENSE"))
+                .filter(t -> t.getTransactionType() == TransactionType.DEBIT)
                 .map(TransactionLedger::getAmount)
                 .mapToDouble(BigDecimal::doubleValue)
                 .sum();
