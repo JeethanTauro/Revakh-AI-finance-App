@@ -1,0 +1,107 @@
+services:
+  # --- DATABASES ---
+  auth-db:
+    image: postgres:15-alpine
+    container_name: auth-db
+    environment:
+      POSTGRES_DB: revakh_auth_service_db
+      POSTGRES_USER: revakh_user
+      POSTGRES_PASSWORD: jeethan7628
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U revakh_user -d revakh_auth_service_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  finance-db:
+    image: postgres:15-alpine
+    container_name: finance-db
+    environment:
+      POSTGRES_DB: revakh_finance_service_db
+      POSTGRES_USER: revakh_user
+      POSTGRES_PASSWORD: jeethan7628
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U revakh_user -d revakh_finance_service_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - finance_db_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+  # --- MESSAGE BROKER ---
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "15672:15672" # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: myapp
+      RABBITMQ_DEFAULT_PASS: mypassword
+      RABBITMQ_DEFAULT_VHOST: myapp_vhost
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- JAVA MICROSERVICES ---
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://auth-db:5432/revakh_auth_service_db
+      SPRING_RABBITMQ_HOST: rabbitmq
+
+  finance-service:
+    build: ./finance-service
+    container_name: finance-service
+    depends_on:
+      finance-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://finance-db:5432/revakh_finance_service_db
+      SPRING_RABBITMQ_HOST: rabbitmq
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8083:8083" # Mapping external 8080 to internal 8083
+    depends_on:
+      - auth-service
+      - finance-service
+      - ai-service
+    environment:
+      # Simplified Placeholder Names
+      - AUTH_SERVICE_URL=http://auth-service:8080
+      - FINANCE_SERVICE_URL=http://finance-service:8081
+      - AI_SERVICE_URL=http://ai-service:8082
+      - JWT_SECRET=ertyuilmnfdrtyui9876542qasxcvbnju890oijhgrwsxcvghy654w
+
+  # --- PYTHON AI SERVICE ---
+  ai-service:
+    build: ./AI-service
+    container_name: ai-service
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - GROQ_API_KEY=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
+      - RABBIT_USER=myapp
+      - RABBIT_PASS=mypassword
+      
+volumes:
+  auth_db_data:
+  finance_db_data:

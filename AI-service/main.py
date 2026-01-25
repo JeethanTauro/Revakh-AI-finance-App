@@ -1,4 +1,4 @@
-from fastapi import FastAPI,HTTPException
+from fastapi import FastAPI,HTTPException, Header
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
 import threading
@@ -39,20 +39,21 @@ def read_root():
     return {"status": "AI Service is Online", "brain": "Listening to RabbitMQ"}
 
 class ChatRequest(BaseModel):
-    user_id: int
     query: str
 
 class ChatResponse(BaseModel):
     answer: str
 
 @app.post("/api/AI/chat", response_model=ChatResponse)
-async def chat_endpoint(request: ChatRequest):
+async def chat_endpoint(
+    request: ChatRequest, 
+    user_id: int = Header(..., alias="userId") 
+):
     try:
-        # Call the RAG function we built earlier
-        answer = ask_finance_ai(request.user_id, request.query)
+        # 3. Pass the trusted user_id from the header to your RAG logic
+        answer = ask_finance_ai(user_id, request.query)
         return ChatResponse(answer=answer)
     except Exception as e:
-        # Proper error handling so the frontend knows what went wrong
         raise HTTPException(status_code=500, detail=str(e))
     
 if __name__ == "__main__":

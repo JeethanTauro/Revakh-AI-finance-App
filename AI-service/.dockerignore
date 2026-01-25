@@ -1,0 +1,22 @@
+# Python bytecode and cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Environments and Secrets
+.env
+.venv/
+env/
+venv/
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+
+# Version control
+.git/
+.gitignore
